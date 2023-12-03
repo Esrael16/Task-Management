@@ -1,7 +1,8 @@
+import Notification from "./components/Notification/NotificationSystem"
 
 const App = () => {
   return (
-    <div>App</div>
+    <Notification />
   )
 }
 

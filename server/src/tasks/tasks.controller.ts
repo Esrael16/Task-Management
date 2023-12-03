@@ -1,80 +1,77 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UsePipes, ValidationPipe } from '@nestjs/common';
-import { TaskService } from './tasks.service';
-import { CreateTaskDto } from './dto/create-task.dto';
-import { UpdateTaskDto } from './dto/update-task.dto';
+// tasks.controller.ts
+
+import { Controller, Get, Post, Body, Param, Put, Delete, NotFoundException, InternalServerErrorException, BadRequestException } from '@nestjs/common';
+import { TasksService } from './tasks.service';
+import { TaskDto } from './dto/task.dto';
 
 @Controller('tasks')
-export class TaskController {
-  constructor(private readonly TaskService: TaskService) {}
+export class TasksController {
+  constructor(private readonly tasksService: TasksService) {}
 
-  @Post()
-  @UsePipes(new ValidationPipe({ transform: true }))
-  async createTask(@Body() createTaskDto: CreateTaskDto) {
-    try {
-      // Call the service method to create a task
-      const task = await this.TaskService.createTask(createTaskDto);
-  
-      // Return a successful response
-      return { success: true, task };
-    } catch (error) {
-      // Catch any errors that occur during task creation
-      return { success: false, error: error.message };
-    }
-  }
-
-  // Create an endpoint to assign a task to a team member
-  @Put(':id/delegate/:userId')
-  async delegateTask(@Param('id') id: string, @Param('userId') userId: string) {
-    try {
-      const delegateTask = await this.TaskService.delegateTask(+id, +userId);
-      return { success: true, delegateTask };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  }
-  // Endpoint to get all tasks
+  // Get all tasks
   @Get()
-  async getAlltasks() {
+  async findAll() {
     try {
-      const tasks = await this.TaskService.getAlltasks();
-      return { success: true, tasks };
+      return await this.tasksService.findAll();
     } catch (error) {
-      return { success: false, error: error.message };
+      console.error('Error in findAll:', error);
+      throw new InternalServerErrorException('Error fetching tasks');
     }
   }
 
-  // Endpoint to get a project by ID
+  // Get a specific task by ID
   @Get(':id')
-  async getTaskById(@Param('id') id: string) {
+  async findOne(@Param('id') id: string) {
     try {
-      const task = await this.TaskService.getTaskId(+id);
-      return { success: true, task };
+      return await this.tasksService.findOne(+id);
     } catch (error) {
-      return { success: false, error: error.message };
+      console.error(`Error in findOne(${id}):`, error);
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(error.message);
+      } else {
+        throw new InternalServerErrorException('Error fetching task');
+      }
     }
   }
 
-  // Endpoint to update a project by ID
+  // Create a new task
+  @Post()
+  async create(@Body() taskDto: TaskDto) {
+    try {
+      return await this.tasksService.create(taskDto);
+    } catch (error) {
+      console.error('Error in create:', error);
+      throw new BadRequestException('Invalid input for creating task');
+    }
+  }
+
+  // Update an existing task by ID
   @Put(':id')
-  @UsePipes(new ValidationPipe({ transform: true }))
-  async updateProject(@Param('id') id: string, @Body() UpdateTaskDto: UpdateTaskDto) {
+  async update(@Param('id') id: string, @Body() taskDto: TaskDto) {
     try {
-      const updatedTask = await this.TaskService.updateTask(+id, UpdateTaskDto);
-      return { success: true, updatedTask };
+      return await this.tasksService.update(+id, taskDto);
     } catch (error) {
-      return { success: false, error: error.message };
+      console.error(`Error in update(${id}):`, error);
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(error.message);
+      } else {
+        throw new InternalServerErrorException('Error updating task');
+      }
     }
   }
 
-  // Endpoint to delete a project by ID
+  // Delete a task by ID
   @Delete(':id')
-  async deleteTask(@Param('id') id: string) {
+  async remove(@Param('id') id: string) {
     try {
-      const result = await this.TaskService.deleteTask(+id);
-      return result;
+      return await this.tasksService.remove(+id);
     } catch (error) {
-      return { success: false, error: error.message };
+      console.error(`Error in remove(${id}):`, error);
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(error.message);
+      } else {
+        throw new InternalServerErrorException('Error deleting task');
+      }
     }
   }
 }
-

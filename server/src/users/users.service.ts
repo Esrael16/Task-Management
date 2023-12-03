@@ -1,6 +1,7 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
+import { UserDto } from './dto/user.dto';
 
 @Injectable()
 export class UserService {
@@ -27,7 +28,7 @@ export class UserService {
       });
 
       if (existingUser) {
-        throw new BadRequestException('Email or username already exists');
+        throw new ConflictException('Email or username already exists');
       }
 
       // Create the user with the hashed password
@@ -49,6 +50,89 @@ export class UserService {
         status: 'error',
         message: `Error creating user: ${error.message}`,
       };
+    }
+  }
+
+   // Get all user
+   async getAlluser() {
+    try {  
+      return await this.prisma.user.findMany();
+    } catch (error) {
+      throw new Error(`Failed to get user: ${error.message}`);
+    }
+  }
+
+  // Get a user by ID
+  async getUserById(id: number) {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: {
+          id,
+        },
+      });
+
+      if (!user) {
+        throw new NotFoundException('user not found');
+      }
+
+      return user;
+    } catch (error) {
+      throw new Error(`Failed to get user by ID: ${error.message}`);
+    }
+  }
+
+  // Update a user by ID
+  async updateUser(id: number, UserDto: UserDto) {
+    try {
+      // Check if the user exists
+      const existingUser = await this.prisma.user.findUnique({
+        where: {
+          id,
+        },
+      });
+
+      if (!existingUser) {
+        throw new NotFoundException('user not found');
+      }
+
+      // Update the user
+      const updatedUser = await this.prisma.user.update({
+        where: {
+          id,
+        },
+        data: UserDto,
+      });
+
+      return updatedUser;
+    } catch (error) {
+      throw new Error(`Failed to update user: ${error.message}`);
+    }
+  }
+
+  // Delete a user by ID
+  async deleteuser(id: number) {
+    try {
+      // Check if the user exists
+      const existinguser = await this.prisma.user.findUnique({
+        where: {
+          id,
+        },
+      });
+
+      if (!existinguser) {
+        throw new NotFoundException('user not found');
+      }
+
+      // Delete the user
+      await this.prisma.user.delete({
+        where: {
+          id,
+        },
+      });
+
+      return { success: true, message: 'user deleted successfully' };
+    } catch (error) {
+      throw new Error(`Failed to delete user: ${error.message}`);
     }
   }
 }
